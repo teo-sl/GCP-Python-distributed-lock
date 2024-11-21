@@ -29,6 +29,12 @@ class DistributedLock:
         if len(parts) != 2:
             raise ValueError("URL must be in the format 'gs://<bucket>/<object>'")
         return parts[0], parts[1]
+     
+    def _calculate_backoff(self, attempt : int, base=1, factor=2, max_backoff=32, jitter=True):
+        delay = min(base * (factor ** attempt), max_backoff)
+        if jitter:
+            delay = random.uniform(0, delay)
+        return delay
  
     def _get_object_metadata(self):
         blob = self.bucket.get_blob(self.object_name)
@@ -92,7 +98,9 @@ class DistributedLock:
                     return
  
     def take_lock(self):
+        attempt = 0
         while True:
+            attempt+=1
             if self._create_lock_object():
                 self.metageneration = self._get_object_metadata()["metageneration"]
                 self.stop_refreshing.clear()
@@ -108,7 +116,7 @@ class DistributedLock:
                 if datetime.now(dt.timezone.utc).timestamp() > expiration_timestamp:
                     self._delete_lock_object(metadata["metageneration"])
                 else:
-                    time.sleep(random.uniform(0.1, 1.0))  # Exponential backoff with jitter
+                    time.sleep(self._calculate_backoff(attempt-1))  # Exponential backoff with jitter
  
     def release_lock(self):
         self.stop_refreshing.set()

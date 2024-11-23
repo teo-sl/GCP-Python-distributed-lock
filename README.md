@@ -1,4 +1,4 @@
-# GCP-distributed-lock
+# GCP-Python-distributed-lock
 A robust algorithm for a distributed lock on google cloud storage written in Python.
 
 This algorithm is based on this <a href="https://www.joyfulbikeshedding.com/blog/2021-05-19-robust-distributed-locking-algorithm-based-on-google-cloud-storage.html">article</a>. 
